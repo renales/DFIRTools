@@ -1,7 +1,7 @@
 # DFIR Linux Toolkit
 **Digital Forensics & Incident Response – Live Triage Tools**
 
----
+
 
 ## Descripción
 
@@ -14,7 +14,6 @@ Está orientado a:
 - Respuesta a incidentes en entornos productivos
 - Formación avanzada en forense digital y ciberseguridad
 
----
 
 ## Principios de diseño
 
@@ -39,7 +38,7 @@ Las herramientas de este repositorio siguen estos principios:
 - **Orientación operativa**  
   Diseñado para escenarios reales: intrusión, malware, insider threat y hardening post-incidente.
 
----
+
 
 ## Estructura del repositorio
 
