@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HMI - Estación de Bombeo MVP</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 16px; background: #f7f7f9; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(220px, 1fr)); gap: 12px; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+    .bar { width: 100%; background: #eee; height: 18px; border-radius: 8px; overflow: hidden; }
+    .fill { height: 100%; background: #3b82f6; }
+    .alarm { color: #b91c1c; font-weight: bold; }
+    button { margin-right: 6px; margin-top: 6px; }
+    pre { background: #111827; color: #f9fafb; padding: 8px; border-radius: 6px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>HMI - Estación de Bombeo</h1>
+  <div class="grid">
+    <div class="card">
+      <h3>Tanque A</h3>
+      <div class="bar"><div id="aFill" class="fill"></div></div>
+      <p>Nivel: <span id="aLevel">-</span>%</p>
+    </div>
+    <div class="card">
+      <h3>Tanque B</h3>
+      <div class="bar"><div id="bFill" class="fill"></div></div>
+      <p>Nivel: <span id="bLevel">-</span>%</p>
+    </div>
+    <div class="card">
+      <h3>Control</h3>
+      <p>Tick: <span id="tick">0</span></p>
+      <p>Modo: <span id="mode">-</span></p>
+      <p>Bomba: <span id="pump">-</span></p>
+      <p>Válvula Entrada: <span id="vin">-</span></p>
+      <p>Válvula Salida: <span id="vout">-</span></p>
+      <button onclick="setMode('auto')">AUTO</button>
+      <button onclick="setMode('manual')">MANUAL</button>
+      <div>
+        <button onclick="cmd('pump_ab.running', true)">Pump ON</button>
+        <button onclick="cmd('pump_ab.running', false)">Pump OFF</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Alarmas activas</h3>
+      <p id="alarms" class="alarm">(sin alarmas)</p>
+      <h4>Tags</h4>
+      <pre id="tags">{}</pre>
+    </div>
+  </div>
+
+  <script>
+    const ws = new WebSocket(`ws://${location.host}/api/ws`);
+    ws.onmessage = (evt) => {
+      const data = JSON.parse(evt.data);
+      render(data);
+    };
+
+    function render(s) {
+      const a = s.tags["tank_a.level"] ?? 0;
+      const b = s.tags["tank_b.level"] ?? 0;
+      document.getElementById("tick").textContent = s.tick;
+      document.getElementById("mode").textContent = s.mode;
+      document.getElementById("pump").textContent = s.tags["pump_ab.running"];
+      document.getElementById("vin").textContent = s.tags["valve_inlet.open"];
+      document.getElementById("vout").textContent = s.tags["valve_outlet.open"];
+      document.getElementById("aLevel").textContent = a;
+      document.getElementById("bLevel").textContent = b;
+      document.getElementById("aFill").style.width = `${Math.max(0, Math.min(100, a))}%`;
+      document.getElementById("bFill").style.width = `${Math.max(0, Math.min(100, b))}%`;
+      document.getElementById("alarms").textContent = s.active_alarms.length ? s.active_alarms.join(", ") : "(sin alarmas)";
+      document.getElementById("tags").textContent = JSON.stringify(s.tags, null, 2);
+    }
+
+    async function setMode(mode) {
+      await fetch('/api/mode', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ mode })
+      });
+    }
+
+    async function cmd(target, value) {
+      const resp = await fetch('/api/command', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ target, value })
+      });
+      if (!resp.ok) {
+        const body = await resp.json();
+        alert(`Error: ${body.detail}`);
+      }
+    }
+  </script>
+</body>
+</html>
